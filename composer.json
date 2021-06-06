@@ -1,0 +1,6 @@
+{
+    "require": {
+        "ozdemirburak/skyscanner-php": "^2.2",
+        "mafikes/kiwiapi": "^1.0"
+    }
+}

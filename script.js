@@ -1,0 +1,492 @@
+/* Change to one-way form */
+
+let isRoundTrip = true;
+function changeOneWay(){
+	/* Change switch button colors */
+	document.getElementById("round-trip").style.backgroundColor = "white";
+	document.getElementById("round-trip").style.color = "#155a55";
+	document.getElementById("one-way").style.backgroundColor = "#32a876";
+	document.getElementById("one-way").style.color = "white";
+	/* Hide return date */
+	document.getElementById("returnheader").style.display = "none";
+	/* Change arrow symbol to one way */
+	document.getElementById("arrow").innerHTML = "⇒";
+	/* Set boolean false */
+	isRoundTrip = false;
+}
+
+function changeRoundTrip(){
+
+	document.getElementById("round-trip").style.backgroundColor = "#32a876";
+	document.getElementById("round-trip").style.color = "white";
+	document.getElementById("one-way").style.backgroundColor = "white";
+	document.getElementById("one-way").style.color = "#155a55";
+
+	/* Show return date selector */
+	document.getElementById("inbound-date").style.display = "block";
+	document.getElementById("returnheader").style.display = "block";
+	/* Set arrow symbol to two way */
+	document.getElementById("arrow").innerHTML = "⇔";
+	/* Set boolean true */
+	isRoundTrip = true;
+}
+
+/* Declare important variables */
+let allQuotes = [];
+let currencySymbol;
+
+/* When search button clicked */
+function search(){
+	/* Set user's input from form to variables */
+	let outcity = document.getElementById("outbound-city").value;
+	let outcountry = document.getElementById("outbound-country").value;
+	let outdate = document.getElementById("outbound-date").value;
+	let incity = document.getElementById("inbound-city").value;
+	let	incountry = document.getElementById("inbound-country").value;
+	let currency = document.getElementById("currency").value;
+	let indate = document.getElementById("inbound-date").value;
+	/* Create alert if required fields not filled */
+	let warnings = [];
+
+	if(!document.getElementById('outbound-city').validity.valid){
+		warnings.push("origin city");
+	} 
+	if(!document.getElementById('outbound-country').validity.valid){
+		warnings.push("origin country");
+	} 
+	if(!document.getElementById('outbound-date').validity.valid){
+		warnings.push("depart date");
+	} 
+	if(!document.getElementById('inbound-city').validity.valid){
+		warnings.push("destination city");
+	} 
+	if(!document.getElementById('inbound-country').validity.valid){
+		warnings.push("destination country");
+	}
+	/* Only add return date warning if user chose round trip */
+	if(!document.getElementById('inbound-date').validity.valid && isRoundTrip){
+		warnings.push("return date");
+	}
+	if(!document.getElementById('currency').validity.valid){
+		warnings.push("currency");
+	} 
+	/* Construct warning string and alert if applicable */
+	let lastwarning = warnings.pop();
+	if(warnings.length == 0 && lastwarning != null){
+		window.alert("Choose your " + lastwarning + ".");
+		return;
+	} else if (warnings.length != 0 && lastwarning != null){
+		let warnmsg = warnings.join(", ");
+		window.alert("Choose your " + warnmsg + " and " + lastwarning + ".");
+		return;
+	}
+
+	/* Set API key and host variables*/
+	let apikey = "5a59aad3c1msh09a1b8c7e5af1c8p12686fjsnca5786dcccb7";
+	let apihost = "skyscanner-skyscanner-flight-search-v1.p.rapidapi.com";
+
+	/* Set finding location IDs url*/
+	let outlocationIDurl = "https://skyscanner-skyscanner-flight-search-v1.p.rapidapi.com/apiservices/autosuggest/v1.0/" + outcountry + "/" + currency + "/en-US/?query=" + outcity;
+	let inlocationIDurl = "https://skyscanner-skyscanner-flight-search-v1.p.rapidapi.com/apiservices/autosuggest/v1.0/" + incountry + "/" + currency + "/en-US/?query=" + incity;
+
+	/* Declare important variables ahead of time */
+	let outlocationID;	
+	let inlocationID;
+	let quotesURL;
+
+	/* Call to API to find origin location's ID */
+	fetch(outlocationIDurl, {
+		"method": "GET",
+		"headers": {
+			"x-rapidapi-key": apikey,
+			"x-rapidapi-host": apihost
+		}
+		})
+		.then(response => response.json())
+		.then(data => outlocationID = data.Places[0].PlaceId)
+		.then(() => 
+				/* Call to API to find destination location's ID */
+				fetch(inlocationIDurl, {
+					"method": "GET",
+					"headers": {
+					"x-rapidapi-key": apikey,
+					"x-rapidapi-host": apihost
+					}
+				})
+				.then(response => response.json())
+				.then(data => inlocationID = data.Places[0].PlaceId)
+				.then(() => {
+					/* Call to API to get all quotes for specified date, time, currency*/
+					if(!isRoundTrip){
+						quotesURL = "https://skyscanner-skyscanner-flight-search-v1.p.rapidapi.com/apiservices/browsequotes/v1.0/" + outcountry + "/" + currency + "/en-US/" + outlocationID + "/" + inlocationID + "/" + outdate;
+					} else{
+						quotesURL = "https://skyscanner-skyscanner-flight-search-v1.p.rapidapi.com/apiservices/browsequotes/v1.0/" + outcountry + "/" + currency + "/en-US/" + outlocationID + "/" + inlocationID + "/" + outdate + "/" + indate;
+					}
+					fetch(quotesURL, {
+						"method": "GET",
+						"headers": {
+							"x-rapidapi-key": apikey,
+							"x-rapidapi-host": apihost
+						}
+						})
+						.then(response => response.json())
+						.then(data => {
+							/* Clear previous search results in HTML*/
+							document.getElementById("allCards").innerHTML = "";
+							/* Empty allQuotes for new search results */
+							allQuotes = [];
+
+							/*If no quotes found, alert user and return */
+							if(data.Quotes.length == 0){
+								/* Hide sort by price selector and footer*/
+								document.getElementById("sort").style.display = "none";
+								document.getElementById("footer").style.display = "none";
+
+								if(!isRoundTrip){
+									window.alert("There are no one way deals for this search at this time!");
+								} else{
+									window.alert("There are no round trip deals for this search at this time!");
+								}
+								return;
+							}
+
+							/* Save currency symbol, carrier list and places list from API*/
+							currencySymbol = data.Currencies[0].Symbol;
+							let carriers = data.Carriers;
+							let places = data.Places;
+
+							/* Find cheapest quote value from quote list */
+							let cheapestQuote = data.Quotes[0].MinPrice;
+							data.Quotes.forEach(function (quote){
+								if(cheapestQuote > quote.MinPrice){
+									cheapestQuote = quote.MinPrice;
+								}
+							});
+				
+							/* Make HTML card for each quote found */
+							data.Quotes.forEach(function (quote){
+								/* Blank dictionary that will hold all info of a quote*/
+								let quoteInfo = {};
+
+								/* Assign needed info to variables */
+								let minPrice = quote.MinPrice;
+								let carrierId = quote.OutboundLeg.CarrierIds;
+								let destinationId = quote.OutboundLeg.DestinationId;
+								let originId = quote.OutboundLeg.OriginId;
+
+								/* Make card */
+								const card = document.createElement("div");
+								card.setAttribute("class", "cards");
+
+								/* Find departure carrier */
+								let carrierName;
+								carriers.forEach(function(c){
+									if(carrierId == c.CarrierId){
+										carrierName = c.Name;
+										/* Add carrierName to dictionary */
+										quoteInfo["carrierName"] = carrierName;
+									}
+								});
+								/* Add departure carrier to card */
+								const carrier = document.createElement("h2");
+								carrier.setAttribute("class", "carrier");
+								carrier.innerHTML = carrierName;
+								card.appendChild(carrier);
+
+								/* Add currency symbol + price to card*/
+								const price = document.createElement("h3");
+								price.setAttribute("class", "price");
+								price.innerHTML = currencySymbol + minPrice;
+								/* Add min price to dictionary */
+								quoteInfo["minPrice"] = minPrice;
+
+								/* If quote is cheapest one, set id */
+								if(cheapestQuote == minPrice){
+									price.setAttribute("id", "cheapest");
+								}
+								/* Add price to card */
+								card.appendChild(price);
+
+								/* Find originId from places */
+								let origincity;
+								let origincountry;
+								let originairport;
+								places.forEach(function(p){
+									if(originId == p.PlaceId){
+										origincity = p.CityName;
+										origincountry = p.CountryName;
+										originairport = p.Name;
+										/* Add origin info to dictionary */
+										quoteInfo["origincity"] = origincity;
+										quoteInfo["origincountry"] = origincountry;
+										quoteInfo["originairport"] = originairport;
+									}
+								});
+
+								/* Find destinationId from places */
+								let destcity;
+								let destcountry;
+								let destairport;
+								places.forEach(function(p){
+									if(destinationId == p.PlaceId){
+										destcity = p.CityName;
+										destcountry = p.CountryName;
+										destairport = p.Name;
+										/* Add destination info to dictionary */
+										quoteInfo["destcity"] = destcity;
+										quoteInfo["destcountry"] = destcountry;
+										quoteInfo["destairport"] = destairport;
+									}
+								});
+
+								/* Add depart trip airports */
+								const departAirports = document.createElement("h3");
+								departAirports.setAttribute("class", "airports");
+								departAirports.innerHTML = originairport + " ⇒ " + destairport;
+								card.appendChild(departAirports);
+
+								/* Add depart trip city and countries */
+								const departLocations = document.createElement("h5");
+								departLocations.setAttribute("class", "locations");
+								departLocations.innerHTML = origincity + ", " + origincountry + "\t\t\t\t\t" + destcity + ", " + destcountry;
+								card.appendChild(departLocations);
+
+								/* If round trip, also find same information for inbound */
+								if(isRoundTrip){
+									let rcarrierId = quote.InboundLeg.CarrierIds;
+									let rdestinationId = quote.InboundLeg.DestinationId;
+									let roriginId = quote.InboundLeg.OriginId;
+
+									/* Find return carrier */
+									let rcarrierName;
+									carriers.forEach(function(c){
+										if(rcarrierId == c.CarrierId){
+											rcarrierName = c.Name;
+											/* Add return carrier to dictionary */
+											quoteInfo["rcarrierName"] = rcarrierName;
+										}
+									});
+									/* Add return carrier to card */
+									const rcarrier = document.createElement("h2");
+									rcarrier.setAttribute("class", "return-carrier");
+									rcarrier.innerHTML = rcarrierName;
+									card.appendChild(rcarrier);
+
+
+									/* Find return originId from places list */
+									let rorigincity;
+									let rorigincountry;
+									let roriginairport;
+									places.forEach(function(p){
+										if(roriginId == p.PlaceId){
+											rorigincity = p.CityName;
+											rorigincountry = p.CountryName;
+											roriginairport = p.Name;
+											/* Add return origin to dictionary */
+											quoteInfo["rorigincity"] = rorigincity;
+											quoteInfo["rorigincountry"] = rorigincountry;
+											quoteInfo["roriginairport"] = roriginairport;
+										}
+									});
+
+									/* Find return destinationId from places */
+									let rdestcity;
+									let rdestcountry;
+									let rdestairport;
+									places.forEach(function(p){
+										if(rdestinationId == p.PlaceId){
+											rdestcity = p.CityName;
+											rdestcountry = p.CountryName;
+											rdestairport = p.Name;
+											/* Add return destination info to dictionary */
+											quoteInfo["rdestcity"] = rdestcity;
+											quoteInfo["rdestcountry"] = rdestcountry;
+											quoteInfo["rdestairport"] = rdestairport;
+										}
+									});
+
+									/* Add depart trip airports to card */
+									const returnAirports = document.createElement("h3");
+									returnAirports.setAttribute("class", "airports");
+									returnAirports.innerHTML = roriginairport + " ⇒ " + rdestairport;
+									card.appendChild(returnAirports);
+
+									/* Add return trip city and countries to card */
+									const returnLocations = document.createElement("h5");
+									returnLocations.setAttribute("class", "locations");
+									returnLocations.innerHTML = rorigincity + ", " + rorigincountry + "\t\t\t" + rdestcity + ", " + rdestcountry;
+									card.appendChild(returnLocations);
+								}
+
+								/* Append card to list of cards in HTML*/
+								allCards.appendChild(card);
+								allQuotes.push(quoteInfo);
+							});
+							
+							/* Sort allQuotes list low to high price with insertion sort*/
+							let i, key, keyDict, j, jDict;
+							for(i = 1; i < allQuotes.length; i++){
+								key = allQuotes[i].minPrice;
+								keyDict = JSON.parse(JSON.stringify(allQuotes[i]));
+								j = i - 1;
+								while( j >= 0 && allQuotes[j].minPrice > key){
+									jDict = JSON.parse(JSON.stringify(allQuotes[j]));
+									allQuotes[j+1] = jDict;
+									j -= 1;
+								}
+								allQuotes[j+1] = keyDict;
+							}
+
+							/* Show sort by price selector */
+							document.getElementById("sort").style.display = "block";
+							document.getElementById("sort").value = "lowhigh";
+
+							/* Show footer */
+							document.getElementById("footer").style.display = "block";
+
+						})
+						.catch(err => {
+							console.error(err);
+						});
+				})
+		);
+}
+
+
+/* When sort by price selector changes */
+function sortCards(){
+	let sortBy = document.getElementById("sort").value;
+
+	/* If user selected cards low to high */
+	if(sortBy == "lowhigh"){
+		/* Empty previous cards */
+		document.getElementById("allCards").innerHTML = "";
+		/* For all quotes */
+		for(let i = 0; i < allQuotes.length; i++){
+			/* Make card */
+			const card = document.createElement("div");
+			card.setAttribute("class", "cards");
+
+			/* Add carrier name to card */
+			const carrier = document.createElement("h2");
+			carrier.setAttribute("class", "carrier");
+			carrier.innerHTML = allQuotes[i]["carrierName"];
+			card.appendChild(carrier);
+
+			/* Create header with currency symbol + price*/
+			const price = document.createElement("h3");
+			price.setAttribute("class", "price");
+			price.innerHTML = currencySymbol + allQuotes[i]["minPrice"];
+
+			/* If cheapest quote, set id */
+			if(i == 0){
+				price.setAttribute("id", "cheapest");
+			}
+			/* Add price to card */
+			card.appendChild(price);
+
+			/* Add depart trip airports to card */
+			const departAirports = document.createElement("h3");
+			departAirports.setAttribute("class", "airports");
+			departAirports.innerHTML = allQuotes[i]["originairport"] + " ⇒ " + allQuotes[i]["destairport"];
+			card.appendChild(departAirports);
+
+			/* Add depart trip city and countries to card */
+			const departLocations = document.createElement("h5");
+			departLocations.setAttribute("class", "locations");
+			departLocations.innerHTML = allQuotes[i]["origincity"] + ", " + allQuotes[i]["origincountry"] + "\t\t\t\t\t" + allQuotes[i]["destcity"] + ", " + allQuotes[i]["destcountry"];
+			card.appendChild(departLocations);
+
+			/* If round trip, find same info for inbound */
+			if(isRoundTrip){
+				/* Add return carrier to card */
+				const rcarrier = document.createElement("h2");
+				rcarrier.setAttribute("class", "return-carrier");
+				rcarrier.innerHTML = allQuotes[i]["rcarrierName"];
+				card.appendChild(rcarrier);
+
+				/* Add depart trip airports to card */
+				const returnAirports = document.createElement("h3");
+				returnAirports.setAttribute("class", "airports");
+				returnAirports.innerHTML = allQuotes[i]["roriginairport"] + " ⇒ " + allQuotes[i]["rdestairport"];
+				card.appendChild(returnAirports);
+
+				/* Add return trip city and countries to card */
+				const returnLocations = document.createElement("h5");
+				returnLocations.setAttribute("class", "locations");
+				returnLocations.innerHTML = allQuotes[i]["rorigincity"] + ", " + allQuotes[i]["rorigincountry"] + "\t\t\t" + allQuotes[i]["rdestcity"] + ", " + allQuotes[i]["rdestcountry"];
+				card.appendChild(returnLocations);
+			}
+
+			/* Append card to list of cards in HTML*/
+			allCards.appendChild(card);
+		}
+	} 
+	/* If user selected cards high to low */
+	else if(sortBy == "highlow"){
+		/* Clear previous card results in HTML */
+		document.getElementById("allCards").innerHTML = "";
+		/* For each quote */
+		for(let i = allQuotes.length - 1; i >= 0; i--){
+			/* Make card */
+			const card = document.createElement("div");
+			card.setAttribute("class", "cards");
+
+			/* Add carrier to card */
+			const carrier = document.createElement("h2");
+			carrier.setAttribute("class", "carrier");
+			carrier.innerHTML = allQuotes[i]["carrierName"];
+			card.appendChild(carrier);
+
+			/* Add currency symbol + price to price header*/
+			const price = document.createElement("h3");
+			price.setAttribute("class", "price");
+			price.innerHTML = currencySymbol + allQuotes[i]["minPrice"];
+
+			/* If cheapest one, set id */
+			if(i == 0){
+				price.setAttribute("id", "cheapest");
+			}
+			/* Add price header to card */
+			card.appendChild(price);
+
+			/* Add depart trip airports to card */
+			const departAirports = document.createElement("h3");
+			departAirports.setAttribute("class", "airports");
+			departAirports.innerHTML = allQuotes[i]["originairport"] + " ⇒ " + allQuotes[i]["destairport"];
+			card.appendChild(departAirports);
+
+			/* Add depart trip city and countries to card */
+			const departLocations = document.createElement("h5");
+			departLocations.setAttribute("class", "locations");
+			departLocations.innerHTML = allQuotes[i]["origincity"] + ", " + allQuotes[i]["origincountry"] + "\t\t\t\t\t" + allQuotes[i]["destcity"] + ", " + allQuotes[i]["destcountry"];
+			card.appendChild(departLocations);
+
+			/* If round trip, find same info for inbound */
+			if(isRoundTrip){
+				/* Add return carrier to card */
+				const rcarrier = document.createElement("h2");
+				rcarrier.setAttribute("class", "return-carrier");
+				rcarrier.innerHTML = allQuotes[i]["rcarrierName"];
+				card.appendChild(rcarrier);
+
+				/* Add return trip airports to card */
+				const returnAirports = document.createElement("h3");
+				returnAirports.setAttribute("class", "airports");
+				returnAirports.innerHTML = allQuotes[i]["roriginairport"] + " ⇒ " + allQuotes[i]["rdestairport"];
+				card.appendChild(returnAirports);
+
+				/* Add return trip city and countries to card */
+				const returnLocations = document.createElement("h5");
+				returnLocations.setAttribute("class", "locations");
+				returnLocations.innerHTML = allQuotes[i]["rorigincity"] + ", " + allQuotes[i]["rorigincountry"] + "\t\t\t" + allQuotes[i]["rdestcity"] + ", " + allQuotes[i]["rdestcountry"];
+				card.appendChild(returnLocations);
+			}
+
+			/* Append card to list of cards in HTML*/
+			allCards.appendChild(card);
+		}
+	}
+}
+
+

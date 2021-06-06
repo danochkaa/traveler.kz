@@ -1,0 +1,125 @@
+
+.jumbotron {
+	/*background-color: #0066cc; */
+	color: #ffffff;
+}
+.navbar {
+	margin-bottom: 0;
+	background-color: #ffffff;
+	border: 0;
+	font-size: 18px !important;
+	letter-spacing: 2px;
+	opacity: 0.9;
+}
+/* Add light blue color to all navbar links */
+.navbar li a, .navbar .navbar-brand {
+	color: #53958e !important;
+}
+/* On hover, the links will turn white */
+.navbar-nav li a:hover, .navbar-nav li.active a {
+	color: rgb(75, 194, 161) !important;
+	background-color: #fff !important;
+}
+
+.navbar-default .navbar-toggle {
+	border-color: transparent;
+	color: #fff !important;
+}
+
+footer {
+	color: #000000;
+	padding: 32px;
+	font-size: 18px;
+}
+
+footer .glyphicon {
+	font-size: 20px;
+	margin-bottom: 20px;
+	color: rgb(40, 186, 164);
+	opacity: 0.9;
+}
+
+#smile{
+	width: 200px;
+	height: 200px;
+}
+
+#total{
+	background-color: rgba(164, 172, 168, 0.89);
+}
+#outbound-date, #inbound-date {
+	padding-right: 22px;
+	background: url(https://www.solodev.com/assets/booking-form/icon_calendar.png) no-repeat scroll 98% center rgb(255, 255, 255);
+}
+body{
+	font-family: 'Abel', sans-serif;
+	letter-spacing:2px;
+}
+.container{
+	font-family: 'Abel', sans-serif;
+	letter-spacing: 1px;
+}
+#submit{
+	align-items: center;
+	color: black;
+}
+.search {
+	align-items: center;
+	color: black;
+	display: none;
+}
+.card{
+
+	border-radius:15px;
+	padding:10px;
+	background-color: rgba(255,255,255, 0.5) !important;
+	margin-bottom:10px;
+}
+input{
+	padding: 12px 20px;
+	margin: 8px 0;
+	box-sizing: border-box;
+}
+#eventCard{
+	border:none !important;
+	width: 100%;
+	max-height: 800px;
+	overflow:auto;
+}
+#flightCard{
+	border:none !important;
+	max-height: 400px;
+	overflow:auto;
+
+}
+#originCard{
+	border:none !important;
+}
+
+#attractionCard{
+	border:none !important;
+	width:100%;
+	max-height: 400px;
+	overflow:auto;
+
+}
+#flightsPrices{
+	width:100%;
+	max-height: 800px;
+	overflow:auto;
+}
+
+.parallax{
+	padding:20px;
+	background: url("images/guarantee2.png") no-repeat center;
+	background-size: cover;
+	background-attachment: fixed;
+	height:200px;
+}
+.parallax2{
+	padding:20px;
+	background: url("images/lastImage.png") no-repeat center;
+	background-size: cover;
+	background-attachment: fixed;
+	height:200px;
+}
